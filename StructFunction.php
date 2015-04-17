@@ -9,6 +9,7 @@ function getStructure($clientsid){
 	$res = $modx->db->query($query);
 	$golden_club_tree = array();
 	$parents = array();
+	$cnt_depth = 0;
 	while ($row = $modx->db->getRow($res)) {
 	    //запишем в массив предков текущего клиента
 	    $parents[$row["descendant"]] = $row["ancestor"];
@@ -16,6 +17,10 @@ function getStructure($clientsid){
 	
 	    //если у нас первый уровень(т е нулевой) создаем корень дерева
 	    if(!$depth){
+	    	if($cnt_depth){
+                    continue;
+                }
+                $cnt_depth++;
 	        $t = array(
 	            "id" => $row["descendant"],
 	            "name" => $row["fullname"],
