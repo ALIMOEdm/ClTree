@@ -1,7 +1,8 @@
 # ClTree
-Данная функция позволяет привести данные, хранящиеся в базе данных в виде шаблона Closure Table, к виду, необходимому для их отрисовки с помощью библиотеки d3.js
-Для ее использования, ее придется немного исправить, а именно изменить под себя метод запроса к бд на тот, который вы используете
-Она возвращает массив, который затем необходимо провести через json_encode, и записать его в файл, с которого d3.js сможет его считать
+The code presented in StructFunction.php allow you create a tree for, for example, d3.js charts with only 1 root.
+
+ClosureTable file contains class with a litle more functionality.
+You need to call handleClosure function with result of your query.
 
 Prefer to use ClosureTable
 
