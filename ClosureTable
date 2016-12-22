@@ -1,0 +1,166 @@
+<?php
+/**
+ * Class ClosureTable
+ * @package AppBundle\Service
+ */
+class ClosureTable
+{
+    /**
+     * Expl:
+     * We have data(see closure table specification)
+     *  acc     desc
+     *  1       1
+     *  1       2
+     *  1       3
+     *  4       4
+     *  4       5
+     *  1       6
+     *
+     * Here we form
+     * $res = array(
+        1 => array(
+     *          1,
+     *          2,
+     *          3,
+     *          6,
+     *      ),
+     *  4 => array(
+                4,
+     *          5,
+     *  )
+     *
+     * )
+     *
+     * And then invoke convertClosureDataToTree for each root element in the $res array
+     *
+     * @param array $data
+     * @return array
+     */
+    public function handleClosure(array $data)
+    {
+        $updated = [];
+        foreach ($data as $d) {
+            $updated[$d['ancestor']][] = $d;
+        }
+
+        $result = [];
+        foreach ($updated as $up) {
+            $result[] = $this->convertClosureDataToTree($up);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Create tree for each branch
+     * Here we receive part of closure data
+     * Exmp:
+     *
+     * We have full tree:
+     *
+     *  =
+     *      =
+     *      =
+     *          =
+     *  =
+     *      =
+     *          =
+     *
+     * We have 2 root elements. So we must to invoke this function for every root element
+     * See handleClosure function
+     *
+     * @param array $data
+     * @return mixed
+     */
+    public function convertClosureDataToTree(array $data)
+    {
+        $golden_club_tree = [];
+        $parents = [];
+        $cnt_depth = 0;
+
+        foreach ($data as $row) {
+            // Save into array parents of current element
+            $parents[$row["descendant"]] = $row["ancestor"];
+            $depth = $row["depth"];
+
+            // If we have got a fist level(depth = 0) create the root of the tree
+            if(!$depth){
+                if($cnt_depth){
+                    continue;
+                }
+                $cnt_depth++;
+                $t = $row;
+                $t['children'] = [];
+                $golden_club_tree[] = $t;
+                continue;
+            }
+            // Create the tree
+            $tree = &$golden_club_tree[0];
+
+            // Save depth value
+            $depth_2 = $row["depth"];
+            // Also save parent of current value
+            $cur_p = $row["descendant"];
+            $parent_cur_p = $parents[$row["descendant"]];
+
+            $flag_second_depth = false;
+            $parents_stack = array();
+            //в чем суть, поскольку формально все осуществляется в один проход
+            //поэтому у нас 2 вложенных цикла, внутренний отвечает за то, чтобы в массиве предков найти первого в структуре
+            //внешний цикл - берет нужный кусок дерева, относительно которого мы рассматриваем, и таким образом,
+            //беря текущий кусок дерева и ищая на этом участке предка,
+            //мы дохзодим до того места, куда необходимо вставить новый элемент в дерево
+            // We have two nested cycles. Inner cycle responsible for search first ancestor in structure in ancestor array
+            // External cycle take need part of the tree, relative od which we consider and so ...
+            while($depth > 0){
+
+                if(!$flag_second_depth){
+                    if($depth_2 > 0){
+                        while($depth_2 > 0){
+                            $cur_p = $parents[$cur_p];
+                            $parents_stack[] = $cur_p;
+                            $depth_2--;
+                        }
+                        array_pop($parents_stack);
+                    }
+                    else{
+                        $cur_p = $parent_cur_p;
+                    }
+                    $flag_second_depth = true;
+                }
+                else{
+                    $cur_p = array_pop($parents_stack);
+                }
+                $index = 0;
+                $depth--;
+
+                // If we meet root of the tree save reference on it
+                if(isset($tree["id"]) && $tree["id"] == $cur_p){
+                    $tree = &$tree["children"];
+                }
+                else
+                {
+                    // If we have array, we must find the parent client for this level of depth
+                    // and take his subtree
+                    if(count($tree)){
+                        foreach ($tree as $k => $v) {
+                            if (isset($v['id']) && $v["id"] == $cur_p) {
+                                $index = $k;
+                                break;
+                            }
+                        }
+                        $tree = &$tree[$index]["children"];
+
+                    }else{
+                        $tree = &$tree;
+                    }
+                }
+            }
+            // Add information about current selected client to its parent
+            $tt = $row;
+            $tt['children'] = [];
+            $tree[] = $tt;
+        }
+        return array_pop($golden_club_tree);
+    }
+}
